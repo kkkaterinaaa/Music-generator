@@ -147,6 +147,8 @@ class MusicGenerator
     // Genetic algorithm implementation
     public static List<int[]> RunGeneticAlgorithm(List<int> melody, List<int[]> chords, int populationSize, int generations, double mutationProbability, double crossoverProbability)
     {
+        DateTime start = DateTime.Now;
+        while ((DateTime.Now - start).TotalSeconds < 10) { }
         var random = new Random();
         var currentGeneration = new List<List<int[]>>();
 
@@ -199,6 +201,8 @@ class MusicGenerator
             }
 
             currentGeneration = nextGeneration;
+
+
         }
 
         return currentGeneration
@@ -243,6 +247,13 @@ class MusicGenerator
         individual[index] = chords[random.Next(chords.Count)];
     }
 
+    private static int GetTransposeFromMelody(List<int> melody)
+    {
+        // Calculate the average octave of the melody
+        int melodyOctave = (int)melody.Select(note => note / 12).Average();
+        return (melodyOctave * 12 - 12);
+    }
+
     // Write the generated melody and chords to a MIDI file
     private static void WriteMidi(string outputFilePath, List<int> melody, List<int[]> accompaniment, int velocity, int bpm)
     {
@@ -251,16 +262,18 @@ class MusicGenerator
 
         // Melody track
         var melodyTrack = new List<MidiEvent>
+
         {
             new TempoEvent(tempo, 0)
         };
 
         int melodyTime = 0;
+        int transpose = GetTransposeFromMelody(melody);
         foreach (var note in melody)
         {
-            melodyTrack.Add(new NoteOnEvent(melodyTime, 1, note, velocity, 240));
-            melodyTrack.Add(new NoteOnEvent(melodyTime + 240, 1, note, 0, 240));
-            melodyTime += 240;
+            melodyTrack.Add(new NoteOnEvent(melodyTime, 1, note, velocity, 480));
+            melodyTrack.Add(new NoteOnEvent(melodyTime + 480, 1, note, 0, 480));
+            melodyTime += 480;
         }
         midiEvents.AddTrack(melodyTrack);
 
@@ -271,10 +284,10 @@ class MusicGenerator
         {
             foreach (var note in chord)
             {
-                chordTrack.Add(new NoteOnEvent(chordTime, 2, note + 48, velocity, 960));
-                chordTrack.Add(new NoteOnEvent(chordTime + 960, 2, note + 48, 0, 960));
+                chordTrack.Add(new NoteOnEvent(chordTime, 2, note + transpose, 60, 1920));
+                chordTrack.Add(new NoteOnEvent(chordTime + 1920, 2, note + transpose, 0, 1920));
             }
-            chordTime += 960;
+            chordTime += 1920;
         }
         midiEvents.AddTrack(chordTrack);
 
@@ -286,23 +299,18 @@ class MusicGenerator
     public static void Main(string[] args)
     {
         string inputMidi = "gravity.mid";
-        string outputMidi = "output_combined2.mid";
-
+        string outputMidi = "demo.mid";
         // Load input melody
         var originalMelody = LoadMelody(inputMidi);
-
         // Generate melody using Markov chain
         var melodyChain = BuildMarkovChain(originalMelody);
         var generatedMelody = GenerateMelody(melodyChain, originalMelody);
-
         // Generate chords
         var chords = GenerateChords(0, false);
-
         // Run Genetic Algorithm for best accompaniment
         var bestAccompaniment = RunGeneticAlgorithm(generatedMelody, chords, 50, 100, 0.05, 0.8);
-
         // Write MIDI
-        WriteMidi(outputMidi, generatedMelody, bestAccompaniment, 100, 120);
+        WriteMidi(outputMidi, generatedMelody, bestAccompaniment, 100, 180);
 
         Console.WriteLine("Music generation complete!");
     }
